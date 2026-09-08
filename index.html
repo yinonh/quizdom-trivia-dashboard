@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alfred Dashboard · Trivia DB</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg:#08111f; --card:rgba(255,255,255,.08); --line:rgba(255,255,255,.14);
+      --text:#f5f8ff; --muted:#aec0d8; --blue:#8fc7ff; --green:#6ee7a8; --amber:#f7c76b; --red:#ff8d8d; --pink:#f0a3ff;
+    }
+    * { box-sizing:border-box; } body { margin:0; min-height:100vh; background:radial-gradient(circle at 12% 8%, rgba(69,139,255,.34), transparent 32%), radial-gradient(circle at 88% 0%, rgba(126,87,255,.28), transparent 30%), radial-gradient(circle at 50% 100%, rgba(47,213,153,.14), transparent 36%), var(--bg); color:var(--text); }
+    .wrap { width:min(1220px, calc(100vw - 28px)); margin:0 auto; padding:34px 0 46px; }
+    header,.card { border:1px solid var(--line); border-radius:28px; background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.055)); box-shadow:0 24px 90px rgba(0,0,0,.32); backdrop-filter:blur(16px); }
+    header { padding:clamp(24px,4vw,42px); } .card { padding:20px; border-radius:22px; }
+    .eyebrow { color:var(--blue); font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; }
+    h1 { margin:12px 0 10px; font-size:clamp(38px,7vw,76px); line-height:.92; letter-spacing:-.055em; } h2 { margin:0 0 14px; font-size:22px; letter-spacing:-.02em; }
+    .lead { max-width:850px; color:#d8e5f7; font-size:clamp(17px,2vw,21px); line-height:1.55; margin:0; }
+    .pillrow { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; align-items:center; } .pill,.tag { border:1px solid rgba(255,255,255,.13); background:rgba(0,0,0,.18); color:#dce9fb; padding:9px 12px; border-radius:999px; font-size:14px; display:inline-block; margin:3px 6px 3px 0; }
+    .refreshbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:18px; } .button { border:1px solid rgba(143,199,255,.45); background:linear-gradient(135deg, rgba(143,199,255,.22), rgba(240,163,255,.15)); color:#f5f8ff; padding:11px 15px; border-radius:999px; font-weight:800; cursor:pointer; box-shadow:0 12px 32px rgba(0,0,0,.22); } .button:disabled { opacity:.58; cursor:wait; } .statusline { color:var(--muted); font-size:14px; }
+    .diffmap { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 14px; } .diffitem { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.16); border-radius:999px; padding:7px 10px; color:#dce9fb; font-size:13px; } .swatch { width:11px; height:11px; border-radius:999px; box-shadow:0 0 14px currentColor; } .easy { color:var(--green); background:var(--green); } .medium { color:var(--amber); background:var(--amber); } .hard { color:var(--red); background:var(--red); }
+    .grid { display:grid; gap:16px; margin-top:16px; } .metrics { grid-template-columns:repeat(4,minmax(0,1fr)); } .two { grid-template-columns:1fr 1fr; } .wide { grid-template-columns:1fr; }
+    .sectionhead { margin-top:28px; display:flex; align-items:end; justify-content:space-between; gap:16px; } .sectionhead h2 { margin:0; font-size:26px; } .sectionhead p { margin:0; max-width:640px; text-align:right; }
+    .label { color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.08em; } .num { font-size:clamp(34px,4vw,52px); font-weight:850; letter-spacing:-.05em; margin:5px 0 4px; } .note,.muted { color:var(--muted); font-size:14px; line-height:1.5; }
+    .progressline { margin:14px 0 0; } .split { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; margin-bottom:8px; } .value { font-weight:800; }
+    .track { height:13px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; border:1px solid rgba(255,255,255,.08); } .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--green),var(--blue)); }
+    .stack { height:18px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.10); display:flex; border:1px solid rgba(255,255,255,.08); } .stack .correct { background:linear-gradient(90deg,var(--green),#9ef5c2); } .stack .wrong { background:linear-gradient(90deg,var(--red),#ffb0b0); } .statpair { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin-top:12px; } .mini { border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.14); border-radius:16px; padding:12px; } .mini b { font-size:22px; display:block; }
+    .barrow { display:grid; grid-template-columns:minmax(145px, 280px) 1fr 74px; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.07); } .barrow:last-child { border-bottom:0; }
+    .catname { display:block; font-weight:750; } .catmeta { display:block; color:var(--muted); font-size:12px; margin-top:2px; } .bartrack { height:15px; border-radius:999px; background:rgba(255,255,255,.10); overflow:hidden; } .barfill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--pink),var(--blue)); } .barfill.correct { background:linear-gradient(90deg,var(--green),#9ef5c2); } .barfill.wrong { background:linear-gradient(90deg,var(--red),#ffb0b0); } .mutedfill { opacity:.45; } .barvalue { text-align:right; font-weight:850; } .barvalue small { display:block; color:var(--muted); font-weight:600; font-size:11px; }
+    .categorydetails { border-bottom:1px solid rgba(255,255,255,.07); } .categorydetails summary { display:grid; grid-template-columns:minmax(145px, 280px) 1fr 74px; gap:12px; align-items:center; padding:10px 0; cursor:pointer; list-style:none; } .categorydetails summary::-webkit-details-marker { display:none; } .categorydetails summary .catname::before { content:"▸"; display:inline-block; width:16px; color:var(--blue); transition:transform .16s ease; } .categorydetails[open] summary .catname::before { transform:rotate(90deg); } .categorydetails summary .barfill { display:block; } .detailrows { margin:2px 0 8px 16px; padding-left:14px; border-left:1px solid rgba(255,255,255,.12); }
+    .columnchart { height:275px; display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); gap:12px; align-items:end; padding:18px 8px 4px; border:1px solid rgba(255,255,255,.08); border-radius:18px; background:rgba(0,0,0,.12); } .colgroup { min-width:0; } .columns { height:210px; display:flex; align-items:end; justify-content:center; gap:7px; border-bottom:1px solid rgba(255,255,255,.16); } .col { width:min(30px, 38%); min-height:0; border-radius:9px 9px 0 0; position:relative; box-shadow:0 12px 24px rgba(0,0,0,.18); } .col.new { background:linear-gradient(180deg,var(--green),var(--blue)); } .col.active { background:linear-gradient(180deg,var(--pink),var(--amber)); } .col span { position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-size:12px; font-weight:800; color:#f5f8ff; } .axislabel { margin-top:8px; text-align:center; color:#dce9fb; font-size:13px; font-weight:760; } .axislabel small { display:block; color:var(--muted); font-weight:650; }
+    .comparebar { display:grid; grid-template-columns:118px 1fr 58px; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.07); } .comparebar:last-child { border-bottom:0; } .comparelabel { font-weight:800; } .comparelabel small { display:block; color:var(--muted); font-weight:650; margin-top:2px; }
+    .mixrow { margin-top:14px; } .mixbar { height:22px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.10); display:flex; border:1px solid rgba(255,255,255,.08); } .mixbar span { display:block; height:100%; } .easyseg { background:linear-gradient(90deg,var(--green),#9ef5c2); } .mediumseg { background:linear-gradient(90deg,var(--amber),#ffe1a0); } .hardseg { background:linear-gradient(90deg,var(--red),#ffb0b0); } .unknownseg { background:linear-gradient(90deg,#8a98ab,#c4cfde); } .compact { margin-top:8px; gap:6px; }
+    .datarow { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.07); } .datarow:last-child { border-bottom:0; } .datarow .value { color:#f5f8ff; white-space:nowrap; }
+    .warning { border-color:rgba(247,199,107,.32); background:linear-gradient(135deg, rgba(247,199,107,.12), rgba(255,255,255,.055)); }
+    ul { margin:10px 0 0; padding-left:20px; color:#d7e3f4; line-height:1.62; } code { color:#d6e8ff; } footer { margin-top:16px; color:var(--muted); font-size:13px; text-align:center; }
+    @media (max-width:900px) { .metrics,.two { grid-template-columns:1fr; } .sectionhead { display:block; } .sectionhead p { text-align:left; margin-top:6px; } .barrow,.datarow,.comparebar,.categorydetails summary { grid-template-columns:1fr; gap:7px; } .barvalue { text-align:left; } .barvalue small { display:inline; margin-left:6px; } .detailrows { margin-left:4px; padding-left:10px; } .columnchart { gap:7px; padding-left:4px; padding-right:4px; } .col span { font-size:11px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Alfred Dashboard · Live Supabase snapshot</div>
+      <h1>Trivia DB Progress</h1>
+      <p class="lead">This view now uses the real Quiz Supabase tables as the source of truth: raw gathered questions versus production-ready Hebrew and English questions.</p>
+      <div class="pillrow"><span class="pill">🔒 Private Tailscale route</span><span class="pill">🧮 24 categories</span><span class="pill">🌅 Daily morning refresh</span><span class="pill">🕒 Last updated: <b id="lastUpdatedAgo" data-generated-at="2026-09-08T05:00:53.642552+00:00">00:00 ago</b> <span class="muted">(2026-09-08 05:00 UTC)</span></span></div>
+      <div class="refreshbar"><button id="refreshButton" class="button" type="button">↻ Refresh now</button><span id="refreshStatus" class="statusline">Manual refresh pulls fresh Supabase counts and reloads this page. Cron refreshes it every morning.</span></div>
+    </header>
+
+    <section class="grid metrics">
+      <div class="card"><div class="label">Ready Hebrew</div><div class="num">2,619</div><div class="note">21.2% of raw Hebrew pool</div></div>
+      <div class="card"><div class="label">Ready English</div><div class="num">4,314</div><div class="note">8.1% of raw English pool</div></div>
+      <div class="card"><div class="label">New sessions · 3 days</div><div class="num">42</div><div class="note">Created since 2026-09-06 UTC</div></div>
+      <div class="card"><div class="label">Active sessions · 24h</div><div class="num">16</div><div class="note">Latest update: 7h ago</div></div>
+    </section>
+
+    <div class="sectionhead">
+      <h2>Usage</h2>
+      <p class="muted">Session activity is shown for the last 3 UTC days, matching the current session-retention window.</p>
+    </div>
+    <section class="grid two">
+      <div class="card">
+        <h2>Sessions by day</h2>
+        <div class="diffmap"><span class="diffitem"><span class="swatch easy"></span>New sessions</span><span class="diffitem"><span class="swatch medium"></span>Updated sessions</span></div>
+        <div class="columnchart">
+            <div class="colgroup">
+              <div class="columns" aria-label="Sun 06: 26 new, 26 active">
+                <div class="col new" style="height:100.00%"><span>26</span></div>
+                <div class="col active" style="height:100.00%"><span>26</span></div>
+              </div>
+              <div class="axislabel">Sun<small>06</small></div>
+            </div>
+            
+            <div class="colgroup">
+              <div class="columns" aria-label="Mon 07: 16 new, 16 active">
+                <div class="col new" style="height:61.54%"><span>16</span></div>
+                <div class="col active" style="height:61.54%"><span>16</span></div>
+              </div>
+              <div class="axislabel">Mon<small>07</small></div>
+            </div>
+            
+            <div class="colgroup">
+              <div class="columns" aria-label="Tue 08: 0 new, 0 active">
+                <div class="col new" style="height:0.00%"><span>0</span></div>
+                <div class="col active" style="height:0.00%"><span>0</span></div>
+              </div>
+              <div class="axislabel">Tue<small>08</small></div>
+            </div>
+            </div>
+        <p class="muted">Source: <code>trivia_sessions.created_at</code> and <code>updated_at</code>. This measures opened/active session tokens, not unique humans.</p>
+      </div>
+      <div class="card">
+        <h2>Session summary</h2>
+        <div class="statpair">
+          <div class="mini"><span class="label">Total sessions</span><b>53</b><span class="muted"><code>trivia_sessions</code></span></div>
+          <div class="mini"><span class="label">3-day change</span><b>+31</b><span class="muted">vs previous 3 days</span></div>
+          <div class="mini"><span class="label">Seen Hebrew IDs</span><b>340</b><span class="muted">Across stored sessions</span></div>
+          <div class="mini"><span class="label">Seen English IDs</span><b>200</b><span class="muted">Across stored sessions</span></div>
+        </div>
+        <p class="muted">This is the best currently available usage signal. Exact API/database request counts need explicit event logging.</p>
+      </div>
+    </section>
+
+    <div class="sectionhead">
+      <h2>Quality</h2>
+      <p class="muted">Answer counters and reports are grouped by language so Hebrew and English problems do not hide inside one combined number.</p>
+    </div>
+    <section class="grid two">
+      <div class="card">
+        <h2>Answer performance</h2>
+        <div class="statpair">
+          <div class="mini"><span class="label">Hebrew correct rate</span><b>72.2%</b><span class="muted">7,172 answers</span></div>
+          <div class="mini"><span class="label">English correct rate</span><b>48.4%</b><span class="muted">3,251 answers</span></div>
+        </div>
+        <div style="margin-top:12px">
+            <div class="comparebar">
+              <span class="comparelabel">Hebrew <small>Correct</small></span>
+              <div class="bartrack"><div class="barfill correct" style="width:100.00%"></div></div>
+              <span class="barvalue">5,179</span>
+            </div>
+            
+
+            <div class="comparebar">
+              <span class="comparelabel">Hebrew <small>Wrong</small></span>
+              <div class="bartrack"><div class="barfill wrong" style="width:38.48%"></div></div>
+              <span class="barvalue">1,993</span>
+            </div>
+            
+
+            <div class="comparebar">
+              <span class="comparelabel">English <small>Correct</small></span>
+              <div class="bartrack"><div class="barfill correct" style="width:30.37%"></div></div>
+              <span class="barvalue">1,573</span>
+            </div>
+            
+
+            <div class="comparebar">
+              <span class="comparelabel">English <small>Wrong</small></span>
+              <div class="bartrack"><div class="barfill wrong" style="width:32.40%"></div></div>
+              <span class="barvalue">1,678</span>
+            </div>
+            </div>
+        <p class="muted">Bars share one scale, making the Hebrew/English split easier to compare than separate stacked panels.</p>
+      </div>
+      <div class="card">
+        <h2>Report status</h2>
+        <div class="statpair">
+          <div class="mini"><span class="label">Hebrew reported questions</span><b>7</b><span class="muted">8 total reports</span></div>
+          <div class="mini"><span class="label">English reported questions</span><b>0</b><span class="muted">0 total reports</span></div>
+        </div>
+        <h2 style="margin-top:18px">Top reported rows</h2>
+        
+            <div class="datarow">
+              <span><b>#789</b> · What year did the crime film &#x27;The Godfather&#x27; premiere?</span>
+              <span class="value">2</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#273</b> · איך בדרך כלל מתוארת טקסטורת העור של כריש?</span>
+              <span class="value">1</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#793</b> · Which quote originates from the sci-fi film &#x27;The Martian&#x27;?</span>
+              <span class="value">1</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#798</b> · Which actor appeared in both &#x27;Iron Man 3&#x27; and &#x27;Schindler&#x27;s List&#x27;?</span>
+              <span class="value">1</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#1345</b> · איזה עמק בירושלים נקרא על שם מסורת נוצרית הקשורה לצלב של ישו?</span>
+              <span class="value">1</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#1918</b> · על שם איזה מלך נקראה טכנולוגיית Bluetooth?</span>
+              <span class="value">1</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#2205</b> · מהו ההבדל העיקרי בין גמל חד-דבשתי לגמל דו-דבשתי?</span>
+              <span class="value">1</span>
+            </div>
+            
+        <p class="muted">No English questions currently have report counters above zero.</p>
+        <p class="muted">“Reported questions” counts rows where <code>reports &gt; 0</code>. The current schema stores counters only, so exact report timestamps are not available yet.</p>
+      </div>
+    </section>
+
+    <div class="sectionhead">
+      <h2>Content</h2>
+      <p class="muted">These charts describe the question inventory: raw-to-ready progress, difficulty balance, and strongest categories.</p>
+    </div>
+    <section class="grid two">
+      <div class="card">
+        <h2>Completion from raw pool</h2>
+        <div class="statpair">
+          <div class="mini"><span class="label">Raw Hebrew pool</span><b>12,355</b><span class="muted"><code>raw_questions_he</code></span></div>
+          <div class="mini"><span class="label">Raw English pool</span><b>53,501</b><span class="muted"><code>questions_raw_en</code></span></div>
+        </div>
+        <div class="progressline"><div class="split"><span>Hebrew production-ready</span><span class="value">2,619 / 12,355 · 21.2%</span></div><div class="track"><div class="fill" style="width:21.198%"></div></div></div>
+        <div class="progressline"><div class="split"><span>English production-ready</span><span class="value">4,314 / 53,501 · 8.1%</span></div><div class="track"><div class="fill" style="width:8.063%"></div></div></div>
+        <div class="progressline"><div class="split"><span>Total ready across HE + EN</span><span class="value">6,933 / 65,856 · 10.5%</span></div><div class="track"><div class="fill" style="width:10.528%"></div></div></div>
+        <p class="muted">Raw tables are treated as 100% gathered inventory. Ready tables are the actual playable/refined question pools.</p>
+      </div>
+      <div class="card">
+        <h2>Difficulty mix</h2>
+        <div class="diffmap" aria-label="Difficulty color map">
+          <span class="diffitem"><span class="swatch easy"></span>Easy</span>
+          <span class="diffitem"><span class="swatch medium"></span>Medium</span>
+          <span class="diffitem"><span class="swatch hard"></span>Hard</span>
+        </div>
+        
+            <div class="mixrow">
+              <div class="split"><span>Hebrew</span><span class="value">2,619 questions</span></div>
+              <div class="mixbar"><span class="easyseg" style="width:61.970%"></span><span class="mediumseg" style="width:32.952%"></span><span class="hardseg" style="width:5.078%"></span></div>
+              <div class="pillrow compact"><span class="tag">Easy: <b>1,623</b></span><span class="tag">Medium: <b>863</b></span><span class="tag">Hard: <b>133</b></span></div>
+            </div>
+            
+
+            <div class="mixrow">
+              <div class="split"><span>English</span><span class="value">4,314 questions</span></div>
+              <div class="mixbar"><span class="easyseg" style="width:52.364%"></span><span class="mediumseg" style="width:35.790%"></span><span class="hardseg" style="width:11.845%"></span></div>
+              <div class="pillrow compact"><span class="tag">Easy: <b>2,259</b></span><span class="tag">Medium: <b>1,544</b></span><span class="tag">Hard: <b>511</b></span></div>
+            </div>
+            
+        <p class="muted">A shared 100% scale makes the language mix easier to compare than separate donut charts.</p>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="card"><h2>Top Hebrew categories</h2>
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">ידע כללי</span>
+                <span class="catmeta">#9 · General Knowledge</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:100.00%"></div></div>
+              <div class="barvalue">451<small>17.2%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">היסטוריה</span>
+                <span class="catmeta">#23 · History</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:79.82%"></div></div>
+              <div class="barvalue">360<small>13.7%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">מדע וטבע</span>
+                <span class="catmeta">#17 · Science &amp; Nature</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:76.50%"></div></div>
+              <div class="barvalue">345<small>13.2%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">גאוגרפיה</span>
+                <span class="catmeta">#22 · Geography</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:58.76%"></div></div>
+              <div class="barvalue">265<small>10.1%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: מוזיקה</span>
+                <span class="catmeta">#12 · Entertainment: Music</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:46.34%"></div></div>
+              <div class="barvalue">209<small>8.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בעלי חיים</span>
+                <span class="catmeta">#27 · Animals</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:40.58%"></div></div>
+              <div class="barvalue">183<small>7.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">תנך</span>
+                <span class="catmeta">#20 · Bible</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:32.82%"></div></div>
+              <div class="barvalue">148<small>5.7%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: קולנוע</span>
+                <span class="catmeta">#11 · Entertainment: Film</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:29.27%"></div></div>
+              <div class="barvalue">132<small>5.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">פוליטיקה</span>
+                <span class="catmeta">#24 · Politics</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:23.50%"></div></div>
+              <div class="barvalue">106<small>4.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: ספרים</span>
+                <span class="catmeta">#10 · Entertainment: Books</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:17.52%"></div></div>
+              <div class="barvalue">79<small>3.0%</small></div>
+            </div>
+            
+
+            <details class="categorydetails">
+              <summary>
+                <span class="barlabel">
+                  <span class="catname">Other categories</span>
+                  <span class="catmeta">14 lower-volume categories · tap to expand</span>
+                </span>
+                <span class="bartrack"><span class="barfill mutedfill" style="width:75.61%"></span></span>
+                <span class="barvalue">341<small>13.0%</small></span>
+              </summary>
+              <div class="detailrows">
+                
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">ספורט</span>
+                <span class="catmeta">#21 · Sports</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:13.08%"></div></div>
+              <div class="barvalue">59<small>2.3%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">אמנות</span>
+                <span class="catmeta">#25 · Art</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:11.53%"></div></div>
+              <div class="barvalue">52<small>2.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">ידוענים</span>
+                <span class="catmeta">#26 · Celebrities</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:11.09%"></div></div>
+              <div class="barvalue">50<small>1.9%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: טלוויזיה</span>
+                <span class="catmeta">#14 · Entertainment: Television</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:10.42%"></div></div>
+              <div class="barvalue">47<small>1.8%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">כלי רכב</span>
+                <span class="catmeta">#28 · Vehicles</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.54%"></div></div>
+              <div class="barvalue">25<small>1.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">מדע: מחשבים</span>
+                <span class="catmeta">#18 · Science: Computers</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.10%"></div></div>
+              <div class="barvalue">23<small>0.9%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">מדע: מתמטיקה</span>
+                <span class="catmeta">#19 · Science: Mathematics</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.10%"></div></div>
+              <div class="barvalue">23<small>0.9%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: סרטים מצוירים ואנימציה</span>
+                <span class="catmeta">#32 · Entertainment: Cartoon &amp; Animation</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:3.77%"></div></div>
+              <div class="barvalue">17<small>0.6%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: מחזות זמר ותיאטרון</span>
+                <span class="catmeta">#13 · Entertainment: Musicals &amp; Theatres</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:3.55%"></div></div>
+              <div class="barvalue">16<small>0.6%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: משחקי קופסה</span>
+                <span class="catmeta">#16 · Entertainment: Board Games</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:3.33%"></div></div>
+              <div class="barvalue">15<small>0.6%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: אנימה ומנגה יפנית</span>
+                <span class="catmeta">#31 · Entertainment: Japanese Anime &amp; Manga</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.00%"></div></div>
+              <div class="barvalue">6<small>0.2%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">מדע: גאדג&#x27;טים</span>
+                <span class="catmeta">#30 · Science: Gadgets</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.00%"></div></div>
+              <div class="barvalue">4<small>0.2%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: משחקי וידאו</span>
+                <span class="catmeta">#15 · Entertainment: Video Games</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.00%"></div></div>
+              <div class="barvalue">2<small>0.1%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">בידור: קומיקס</span>
+                <span class="catmeta">#29 · Entertainment: Comics</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.00%"></div></div>
+              <div class="barvalue">2<small>0.1%</small></div>
+            </div>
+            
+              </div>
+            </details>
+            </div>
+      <div class="card"><h2>Top English categories</h2>
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Geography</span>
+                <span class="catmeta">#22 · גאוגרפיה</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:100.00%"></div></div>
+              <div class="barvalue">567<small>13.1%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">General Knowledge</span>
+                <span class="catmeta">#9 · ידע כללי</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:91.01%"></div></div>
+              <div class="barvalue">516<small>12.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Music</span>
+                <span class="catmeta">#12 · בידור: מוזיקה</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:88.71%"></div></div>
+              <div class="barvalue">503<small>11.7%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Film</span>
+                <span class="catmeta">#11 · בידור: קולנוע</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:77.25%"></div></div>
+              <div class="barvalue">438<small>10.2%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Science &amp; Nature</span>
+                <span class="catmeta">#17 · מדע וטבע</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:76.19%"></div></div>
+              <div class="barvalue">432<small>10.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">History</span>
+                <span class="catmeta">#23 · היסטוריה</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:74.96%"></div></div>
+              <div class="barvalue">425<small>9.9%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Books</span>
+                <span class="catmeta">#10 · בידור: ספרים</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:71.60%"></div></div>
+              <div class="barvalue">406<small>9.4%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Animals</span>
+                <span class="catmeta">#27 · בעלי חיים</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:30.16%"></div></div>
+              <div class="barvalue">171<small>4.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Sports</span>
+                <span class="catmeta">#21 · ספורט</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:26.46%"></div></div>
+              <div class="barvalue">150<small>3.5%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Art</span>
+                <span class="catmeta">#25 · אמנות</span>
+              </div>
+              <div class="bartrack"><div class="barfill" style="width:17.64%"></div></div>
+              <div class="barvalue">100<small>2.3%</small></div>
+            </div>
+            
+
+            <details class="categorydetails">
+              <summary>
+                <span class="barlabel">
+                  <span class="catname">Other categories</span>
+                  <span class="catmeta">14 lower-volume categories · tap to expand</span>
+                </span>
+                <span class="bartrack"><span class="barfill mutedfill" style="width:100.00%"></span></span>
+                <span class="barvalue">606<small>14.0%</small></span>
+              </summary>
+              <div class="detailrows">
+                
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Politics</span>
+                <span class="catmeta">#24 · פוליטיקה</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:15.17%"></div></div>
+              <div class="barvalue">86<small>2.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Video Games</span>
+                <span class="catmeta">#15 · בידור: משחקי וידאו</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:14.64%"></div></div>
+              <div class="barvalue">83<small>1.9%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Board Games</span>
+                <span class="catmeta">#16 · בידור: משחקי קופסה</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:11.11%"></div></div>
+              <div class="barvalue">63<small>1.5%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Science: Computers</span>
+                <span class="catmeta">#18 · מדע: מחשבים</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:10.41%"></div></div>
+              <div class="barvalue">59<small>1.4%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Science: Mathematics</span>
+                <span class="catmeta">#19 · מדע: מתמטיקה</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:10.23%"></div></div>
+              <div class="barvalue">58<small>1.3%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Television</span>
+                <span class="catmeta">#14 · בידור: טלוויזיה</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:8.64%"></div></div>
+              <div class="barvalue">49<small>1.1%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Vehicles</span>
+                <span class="catmeta">#28 · כלי רכב</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:7.76%"></div></div>
+              <div class="barvalue">44<small>1.0%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Musicals &amp; Theatres</span>
+                <span class="catmeta">#13 · בידור: מחזות זמר ותיאטרון</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.82%"></div></div>
+              <div class="barvalue">33<small>0.8%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Celebrities</span>
+                <span class="catmeta">#26 · ידוענים</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.82%"></div></div>
+              <div class="barvalue">33<small>0.8%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Cartoon &amp; Animation</span>
+                <span class="catmeta">#32 · בידור: סרטים מצוירים ואנימציה</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:5.47%"></div></div>
+              <div class="barvalue">31<small>0.7%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Science: Gadgets</span>
+                <span class="catmeta">#30 · מדע: גאדג&#x27;טים</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:4.23%"></div></div>
+              <div class="barvalue">24<small>0.6%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Comics</span>
+                <span class="catmeta">#29 · בידור: קומיקס</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.65%"></div></div>
+              <div class="barvalue">15<small>0.3%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Entertainment: Japanese Anime &amp; Manga</span>
+                <span class="catmeta">#31 · בידור: אנימה ומנגה יפנית</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.65%"></div></div>
+              <div class="barvalue">15<small>0.3%</small></div>
+            </div>
+            
+
+            <div class="barrow">
+              <div class="barlabel">
+                <span class="catname">Bible</span>
+                <span class="catmeta">#20 · תנך</span>
+              </div>
+              <div class="bartrack"><div class="barfill mutedfill" style="width:2.29%"></div></div>
+              <div class="barvalue">13<small>0.3%</small></div>
+            </div>
+            
+              </div>
+            </details>
+            </div>
+    </section>
+
+    <div class="sectionhead">
+      <h2>Feedback</h2>
+      <p class="muted">Suggestions are kept compact because the volume is low today; reports can become a trend chart once timestamps are tracked.</p>
+    </div>
+    <section class="grid two">
+      <div class="card">
+        <h2>User suggestions</h2>
+        <div class="statpair">
+          <div class="mini"><span class="label">Suggestions · 7 days</span><b>0</b><span class="muted">New submissions</span></div>
+          <div class="mini"><span class="label">All suggestions</span><b>5</b><span class="muted">approved: 5</span></div>
+        </div>
+        <div class="pillrow"><span class="tag">HE: <b>2</b></span><span class="tag">EN: <b>3</b></span><span class="tag">Unknown: <b>0</b></span></div>
+        
+            <div class="datarow">
+              <span><b>#19</b> · EN · approved</span>
+              <span class="value">19d ago</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#18</b> · EN · approved</span>
+              <span class="value">19d ago</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#17</b> · HE · approved</span>
+              <span class="value">71d ago</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#15</b> · EN · approved</span>
+              <span class="value">82d ago</span>
+            </div>
+            
+
+            <div class="datarow">
+              <span><b>#14</b> · HE · approved</span>
+              <span class="value">110d ago</span>
+            </div>
+            
+      </div>
+      <div class="card warning">
+        <h2>Telemetry gaps</h2>
+        <ul>
+          <li>DB/API request counts are not currently stored in a public table.</li>
+          <li>Report timestamps are not currently stored; only per-question report counters exist.</li>
+          <li>For exact usage analytics, add an append-only event table for session starts, answers, reports, and API calls.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <h2>What this means</h2>
+      <ul>
+        <li>The real ready tables currently contain <b>2,619</b> Hebrew questions and <b>4,314</b> English questions.</li>
+        <li>Usage: <b>42</b> new sessions opened in the last 3 UTC days, with <b>16</b> sessions active in the last 24 hours.</li>
+        <li>Session inventory has seen <b>340</b> Hebrew question IDs and <b>200</b> English question IDs across all stored sessions.</li>
+        <li>Reports: <b>7</b> Hebrew questions and <b>0</b> English questions currently have at least one report.</li>
+        <li>Answer counters show <b>6,752</b> correct answers and <b>3,671</b> wrong answers across both ready tables, with Hebrew and English performance split into separate panels.</li>
+        <li>The dashboard can show session starts and interaction counters today; exact DB/API call counts and report timestamps need explicit event logging in the app/backend.</li>
+        <li>Hebrew is strongest in History, Science & Nature, General Knowledge, and Animals.</li>
+        <li>English is currently strongest in Geography, Music, Science & Nature, and General Knowledge.</li>
+        <li>This page refreshes automatically every morning and still supports manual refresh from the header.</li>
+      </ul>
+    </section>
+    <footer>Built by Alfred 🎩 · source of truth: Supabase project uhfsfedwteeoxsvixvtr</footer>
+  </div>
+  <script>
+    const button = document.getElementById('refreshButton');
+    const status = document.getElementById('refreshStatus');
+    const lastUpdatedAgo = document.getElementById('lastUpdatedAgo');
+    function updateLastUpdatedAgo() {
+      if (!lastUpdatedAgo) return;
+      const generatedAt = new Date(lastUpdatedAgo.dataset.generatedAt);
+      const diffMs = Math.max(0, Date.now() - generatedAt.getTime());
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      lastUpdatedAgo.textContent = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ' ago';
+    }
+    updateLastUpdatedAgo();
+    setInterval(updateLastUpdatedAgo, 60000);
+    button?.addEventListener('click', async () => {
+      const base = window.location.pathname.replace(/\/?$/, '');
+      const refreshUrl = base + '/refresh';
+      button.disabled = true;
+      const oldText = button.textContent;
+      button.textContent = 'Refreshing…';
+      status.textContent = 'Pulling live Supabase counts. This can take a few seconds.';
+      try {
+        const res = await fetch(refreshUrl, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || data.stderr || ('HTTP ' + res.status));
+        status.textContent = 'Updated successfully in ' + data.durationSeconds + 's. Reloading…';
+        window.location.reload();
+      } catch (err) {
+        status.textContent = 'Refresh failed: ' + (err.message || err);
+        button.disabled = false;
+        button.textContent = oldText;
+      }
+    });
+  </script>
+</body>
+</html>
