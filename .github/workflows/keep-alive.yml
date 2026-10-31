@@ -1,0 +1,29 @@
+name: Keep repo alive
+
+# Empty commit about once a month so GitHub does not auto-disable
+# the scheduled dashboard refresh for inactivity.
+on:
+  schedule:
+    # 06:00 UTC on the 1st of every month (~every 30 days).
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+
+      - name: Monthly keep-alive commit
+        run: |
+          git commit --allow-empty -m "chore: monthly keep-alive to prevent scheduled workflow auto-disable"
+          git push
