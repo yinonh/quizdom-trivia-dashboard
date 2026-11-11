@@ -3,5 +3,8 @@ memory/
 supabase-creds.json
 *.env
 .env
+supabase/functions/.env
+supabase/.temp/
+supabase/.branches/
 __pycache__/
 *.pyc

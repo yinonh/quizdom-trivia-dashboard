@@ -19,7 +19,7 @@
     h1 { margin:12px 0 10px; font-size:clamp(38px,7vw,76px); line-height:.92; letter-spacing:-.055em; } h2 { margin:0 0 14px; font-size:22px; letter-spacing:-.02em; }
     .lead { max-width:850px; color:#d8e5f7; font-size:clamp(17px,2vw,21px); line-height:1.55; margin:0; }
     .pillrow { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; align-items:center; } .pill,.tag { border:1px solid rgba(255,255,255,.13); background:rgba(0,0,0,.18); color:#dce9fb; padding:9px 12px; border-radius:999px; font-size:14px; display:inline-block; margin:3px 6px 3px 0; }
-    .refreshbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:18px; } .button { border:1px solid rgba(143,199,255,.45); background:linear-gradient(135deg, rgba(143,199,255,.22), rgba(240,163,255,.15)); color:#f5f8ff; padding:11px 15px; border-radius:999px; font-weight:800; cursor:pointer; box-shadow:0 12px 32px rgba(0,0,0,.22); } .button:disabled { opacity:.58; cursor:wait; } .statusline { color:var(--muted); font-size:14px; }
+    .refreshbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:18px; } .button { border:1px solid rgba(143,199,255,.45); background:linear-gradient(135deg, rgba(143,199,255,.22), rgba(240,163,255,.15)); color:#f5f8ff; padding:11px 15px; border-radius:999px; font-weight:800; cursor:pointer; box-shadow:0 12px 32px rgba(0,0,0,.22); } .button:disabled { opacity:.58; cursor:wait; } .statusline { color:var(--muted); font-size:14px; } .statusline.ok { color:var(--green); } .statusline.wait { color:var(--amber); } .statusline.error { color:var(--red); }
     .diffmap { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 14px; } .diffitem { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.16); border-radius:999px; padding:7px 10px; color:#dce9fb; font-size:13px; } .swatch { width:11px; height:11px; border-radius:999px; box-shadow:0 0 14px currentColor; } .easy { color:var(--green); background:var(--green); } .medium { color:var(--amber); background:var(--amber); } .hard { color:var(--red); background:var(--red); }
     .grid { display:grid; gap:16px; margin-top:16px; } .metrics { grid-template-columns:repeat(4,minmax(0,1fr)); } .two { grid-template-columns:1fr 1fr; } .wide { grid-template-columns:1fr; }
     .sectionhead { margin-top:28px; display:flex; align-items:end; justify-content:space-between; gap:16px; } .sectionhead h2 { margin:0; font-size:26px; } .sectionhead p { margin:0; max-width:640px; text-align:right; }
@@ -45,8 +45,8 @@
       <div class="eyebrow">Alfred Dashboard · Live Supabase snapshot</div>
       <h1>Trivia DB Progress</h1>
       <p class="lead">This view now uses the real Quiz Supabase tables as the source of truth: raw gathered questions versus production-ready Hebrew and English questions.</p>
-      <div class="pillrow"><span class="pill">🔒 Private Tailscale route</span><span class="pill">🧮 24 categories</span><span class="pill">🌅 Daily morning refresh</span><span class="pill">🕒 Last updated: <b id="lastUpdatedAgo" data-generated-at="2026-09-08T05:00:53.642552+00:00">00:00 ago</b> <span class="muted">(2026-09-08 05:00 UTC)</span></span></div>
-      <div class="refreshbar"><button id="refreshButton" class="button" type="button">↻ Refresh now</button><span id="refreshStatus" class="statusline">Manual refresh pulls fresh Supabase counts and reloads this page. Cron refreshes it every morning.</span></div>
+      <div class="pillrow"><span class="pill">🌐 GitHub Pages</span><span class="pill">🧮 24 categories</span><span class="pill">🌅 Daily morning refresh</span><span class="pill">🕒 Last updated: <b id="lastUpdatedAgo" data-generated-at="2026-09-08T05:00:53.642552+00:00">00:00 ago</b> <span class="muted">(2026-09-08 05:00 UTC)</span></span></div>
+      <div class="refreshbar"><button id="refreshButton" class="button" type="button">↻ Refresh now</button><span id="refreshStatus" class="statusline" role="status" aria-live="polite">Starts a GitHub Actions rebuild of this page. A new snapshot usually shows up in 1–2 minutes. The morning schedule still runs on its own.</span></div>
     </header>
 
     <section class="grid metrics">
@@ -814,7 +814,7 @@
         <li>The dashboard can show session starts and interaction counters today; exact DB/API call counts and report timestamps need explicit event logging in the app/backend.</li>
         <li>Hebrew is strongest in History, Science & Nature, General Knowledge, and Animals.</li>
         <li>English is currently strongest in Geography, Music, Science & Nature, and General Knowledge.</li>
-        <li>This page refreshes automatically every morning and still supports manual refresh from the header.</li>
+        <li>This page rebuilds every morning on GitHub Actions. Refresh now starts an extra rebuild, which usually shows up in 1–2 minutes.</li>
       </ul>
     </section>
     <footer>Built by Alfred 🎩 · source of truth: Supabase project uhfsfedwteeoxsvixvtr</footer>
@@ -823,6 +823,10 @@
     const button = document.getElementById('refreshButton');
     const status = document.getElementById('refreshStatus');
     const lastUpdatedAgo = document.getElementById('lastUpdatedAgo');
+    const REFRESH_ENDPOINT = 'https://uhfsfedwteeoxsvixvtr.supabase.co/functions/v1/refresh-dashboard';
+    const POLL_EVERY_MS = 15000;
+    const POLL_FOR_MS = 180000;
+
     function updateLastUpdatedAgo() {
       if (!lastUpdatedAgo) return;
       const generatedAt = new Date(lastUpdatedAgo.dataset.generatedAt);
@@ -834,23 +838,88 @@
     }
     updateLastUpdatedAgo();
     setInterval(updateLastUpdatedAgo, 60000);
+
+    function setStatus(kind, text) {
+      if (!status) return;
+      status.classList.remove('ok', 'wait', 'error');
+      if (kind) status.classList.add(kind);
+      status.textContent = text;
+    }
+
+    function friendly(text, fallback) {
+      if (typeof text !== 'string') return fallback;
+      const trimmed = text.trim();
+      if (!trimmed || trimmed.length > 240) return fallback;
+      return trimmed;
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function waitForNewerSnapshot(previousMs) {
+      const deadline = Date.now() + POLL_FOR_MS;
+      while (Date.now() < deadline) {
+        await sleep(POLL_EVERY_MS);
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('refresh-check', String(Date.now()));
+          const res = await fetch(url.toString(), { cache: 'no-store' });
+          if (!res.ok) continue;
+          const html = await res.text();
+          const match = html.match(/data-generated-at="([^"]+)"/);
+          const nextMs = match ? Date.parse(match[1]) : NaN;
+          if (Number.isFinite(nextMs) && nextMs > previousMs) return true;
+        } catch (err) {
+          // A deploy can briefly fail this fetch. Keep checking until the deadline.
+        }
+      }
+      return false;
+    }
+
     button?.addEventListener('click', async () => {
-      const base = window.location.pathname.replace(/\/?$/, '');
-      const refreshUrl = base + '/refresh';
+      if (!button || button.disabled) return;
+      const previousMs = lastUpdatedAgo ? Date.parse(lastUpdatedAgo.dataset.generatedAt || '') : 0;
+      const baseline = Number.isFinite(previousMs) ? previousMs : 0;
       button.disabled = true;
-      const oldText = button.textContent;
-      button.textContent = 'Refreshing…';
-      status.textContent = 'Pulling live Supabase counts. This can take a few seconds.';
+      button.textContent = 'Starting…';
+      setStatus('wait', 'Starting a refresh…');
       try {
-        const res = await fetch(refreshUrl, { method: 'POST' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) throw new Error(data.error || data.stderr || ('HTTP ' + res.status));
-        status.textContent = 'Updated successfully in ' + data.durationSeconds + 's. Reloading…';
-        window.location.reload();
-      } catch (err) {
-        status.textContent = 'Refresh failed: ' + (err.message || err);
+        const res = await fetch(REFRESH_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        const data = await res.json().catch(() => null);
+        const serverMessage = friendly(data && data.ok === false ? data.message : '', '');
+        if (res.status === 429) {
+          setStatus('wait', serverMessage || 'A refresh is already running or was started in the last few minutes. Please wait and try again.');
+          button.disabled = false;
+          button.textContent = '↻ Refresh now';
+          return;
+        }
+        if (!res.ok || !data || data.ok !== true) {
+          throw new Error(serverMessage || ('Could not start a refresh (HTTP ' + res.status + ').'));
+        }
+        button.textContent = 'Refreshing…';
+        setStatus('ok', friendly(data.message, 'Refresh started. The page will update in about 1–2 minutes.'));
+        const ready = await waitForNewerSnapshot(baseline);
+        if (ready) {
+          setStatus('ok', 'New snapshot is ready. Reloading…');
+          window.location.reload();
+          return;
+        }
+        setStatus('wait', 'Refresh started. The page will update in about 1–2 minutes. Reload if the clock above has not moved.');
         button.disabled = false;
-        button.textContent = oldText;
+        button.textContent = '↻ Refresh now';
+      } catch (err) {
+        const detail = err && err.message ? String(err.message) : '';
+        const unreachable = !detail || detail === 'Failed to fetch' || detail === 'Load failed' || detail === 'NetworkError when attempting to fetch resource.';
+        setStatus('error', unreachable
+          ? 'Refresh failed: Could not reach the refresh service. If this keeps happening, the edge function may not be deployed yet.'
+          : 'Refresh failed: ' + detail);
+        button.disabled = false;
+        button.textContent = '↻ Refresh now';
       }
     });
   </script>

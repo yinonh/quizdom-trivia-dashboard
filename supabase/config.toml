@@ -1,0 +1,9 @@
+# Partial Supabase config for the dashboard refresh function.
+# verify_jwt is off because the public GitHub Pages dashboard has no signed-in
+# user. Deploy with: supabase functions deploy refresh-dashboard --no-verify-jwt
+# See the README section "Refresh now".
+
+project_id = "uhfsfedwteeoxsvixvtr"
+
+[functions.refresh-dashboard]
+verify_jwt = false

@@ -7,7 +7,7 @@ on:
     # 07:00 Asia/Jerusalem = 04:00 or 05:00 UTC depending on DST.
     # Cron here is UTC; 05:00 UTC ≈ 07:00/08:00 Israel. Adjust if you like.
     - cron: "0 5 * * *"
-  workflow_dispatch: {}   # lets you trigger a refresh manually from the Actions tab
+  workflow_dispatch: {}   # Actions tab, and the dashboard button via the refresh-dashboard edge function
 
 permissions:
   contents: read
